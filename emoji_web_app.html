@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EmojiSequencer</title>
+<meta name="description" content="Translate any sentence into emojis">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EmojiSequencer">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+
+<!-- Inline SVG icon as data URI for self-contained file -->
+<script>
+const iconSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="100" fill="#1a1a2e"/>
+  <!-- Book -->
+  <rect x="130" y="200" width="252" height="180" rx="12" fill="#f0e6d3"/>
+  <rect x="130" y="200" width="126" height="180" rx="12" fill="#e8d5bc"/>
+  <rect x="248" y="200" width="8" height="180" fill="#c4a882"/>
+  <rect x="148" y="225" width="90" height="8" rx="4" fill="#c4a882"/>
+  <rect x="148" y="245" width="70" height="8" rx="4" fill="#c4a882"/>
+  <rect x="148" y="265" width="80" height="8" rx="4" fill="#c4a882"/>
+  <rect x="270" y="225" width="90" height="8" rx="4" fill="#c4a882"/>
+  <rect x="270" y="245" width="70" height="8" rx="4" fill="#c4a882"/>
+  <!-- Octopus body -->
+  <ellipse cx="256" cy="175" rx="75" ry="65" fill="#9b59b6"/>
+  <!-- Eyes -->
+  <circle cx="232" cy="162" r="12" fill="white"/>
+  <circle cx="280" cy="162" r="12" fill="white"/>
+  <circle cx="235" cy="164" r="6" fill="#1a1a2e"/>
+  <circle cx="283" cy="164" r="6" fill="#1a1a2e"/>
+  <circle cx="237" cy="162" r="2" fill="white"/>
+  <circle cx="285" cy="162" r="2" fill="white"/>
+  <!-- Tentacles -->
+  <path d="M185 210 Q160 240 150 270 Q145 295 158 310" stroke="#7d3c98" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M205 225 Q190 260 188 290 Q188 315 200 325" stroke="#7d3c98" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M256 230 Q256 265 256 290 Q256 315 256 330" stroke="#7d3c98" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M307 225 Q322 260 324 290 Q324 315 312 325" stroke="#7d3c98" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M327 210 Q352 240 362 270 Q367 295 354 310" stroke="#7d3c98" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <!-- Suckers on a couple tentacles -->
+  <circle cx="155" cy="268" r="5" fill="#c39bd3"/>
+  <circle cx="151" cy="290" r="4" fill="#c39bd3"/>
+  <circle cx="362" cy="268" r="5" fill="#c39bd3"/>
+  <circle cx="366" cy="290" r="4" fill="#c39bd3"/>
+  <!-- Small star/sparkle -->
+  <text x="340" y="155" font-size="48" text-anchor="middle">✨</text>
+</svg>`;
+
+const blob = new Blob([iconSVG], {type: 'image/svg+xml'});
+const iconURL = URL.createObjectURL(blob);
+document.querySelector('link[rel="icon"]').href = iconURL;
+document.querySelector('link[rel="apple-touch-icon"]').href = iconURL;
+
+const manifest = {
+  name: "EmojiTranslator",
+  short_name: "EmojiTranslator",
+  description: "Translate any sentence into emojis",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#1a1a2e",
+  theme_color: "#1a1a2e",
+  icons: [
+    { src: iconURL, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+  ]
+};
+const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+const manifestURL = URL.createObjectURL(manifestBlob);
+const link = document.createElement('link');
+link.rel = 'manifest';
+link.href = manifestURL;
+document.head.appendChild(link);
+</script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #242438;
+    --border: rgba(255,255,255,0.1);
+    --border2: rgba(255,255,255,0.18);
+    --text: #f0f0f5;
+    --text2: #a0a0b8;
+    --text3: #6a6a88;
+    --accent: #9b59b6;
+    --accent2: #7d3c98;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 16px 12px;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .app-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 12px;
+  }
+
+  .tab {
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: var(--text2);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+
+  .pane { display: none; padding: 16px; max-width: 680px; margin: 0 auto; }
+  .pane.active { display: block; }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 15px;
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--text3); }
+
+  .btn {
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    color: white;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+
+  .btn:hover { background: var(--accent2); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text2);
+    border: 0.5px solid var(--border);
+    font-weight: 500;
+  }
+  .btn-ghost:hover { background: var(--border); }
+  .btn-ghost.active { color: var(--accent); border-color: var(--accent); }
+
+  .result-box {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .emoji-string {
+    font-size: 30px;
+    letter-spacing: 3px;
+    line-height: 1.5;
+    display: block;
+    cursor: pointer;
+    padding: 4px 0 12px;
+    min-height: 50px;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 0.5px solid var(--border);
+    margin-top: 4px;
+  }
+
+  .word-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 0.5px solid var(--border);
+  }
+
+  .word-block {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+  }
+
+  .word-label {
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 6px;
+    text-transform: lowercase;
+  }
+
+  .emoji-opts {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .emoji-opt {
+    font-size: 22px;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    border-radius: 6px;
+    padding: 2px 5px;
+    background: transparent;
+    line-height: 1.3;
+    transition: border-color 0.1s;
+  }
+
+  .emoji-opt.selected {
+    border-color: var(--accent);
+    background: rgba(155, 89, 182, 0.15);
+  }
+
+  .fav-item {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .fav-item:hover { border-color: var(--border2); }
+
+  .fav-sentence {
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 6px;
+  }
+
+  .fav-emoji { font-size: 24px; letter-spacing: 2px; }
+
+  .fav-item-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  .pref-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 14px;
+  }
+
+  .pref-word { color: var(--text2); }
+  .pref-emoji { font-size: 22px; }
+
+  .del-btn {
+    font-size: 12px;
+    padding: 3px 9px;
+    background: transparent;
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    color: var(--text3);
+    cursor: pointer;
+  }
+  .del-btn:hover { color: #e74c3c; border-color: #e74c3c; }
+
+  .empty {
+    text-align: center;
+    color: var(--text3);
+    font-size: 14px;
+    padding: 2.5rem 0;
+    line-height: 1.7;
+  }
+
+  .error { color: #e74c3c; font-size: 14px; margin-bottom: 10px; }
+
+  .toast {
+    position: fixed;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--accent);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: transform 0.25s ease;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .loading-dots::after {
+    content: '';
+    animation: dots 1.2s steps(4, end) infinite;
+  }
+  @keyframes dots {
+    0%   { content: ''; }
+    25%  { content: '.'; }
+    50%  { content: '..'; }
+    75%  { content: '...'; }
+    100% { content: ''; }
+  }
+
+  .pref-note {
+    font-size: 13px;
+    color: var(--text3);
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="app-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <rect width="512" height="512" rx="100" fill="#1a1a2e"/>
+    <rect x="130" y="200" width="252" height="180" rx="12" fill="#f0e6d3"/>
+    <rect x="130" y="200" width="126" height="180" rx="12" fill="#e8d5bc"/>
+    <rect x="248" y="200" width="8" height="180" fill="#c4a882"/>
+    <rect x="148" y="225" width="90" height="8" rx="4" fill="#c4a882"/>
+    <rect x="148" y="245" width="70" height="8" rx="4" fill="#c4a882"/>
+    <rect x="148" y="265" width="80" height="8" rx="4" fill="#c4a882"/>
+    <rect x="270" y="225" width="90" height="8" rx="4" fill="#c4a882"/>
+    <rect x="270" y="245" width="70" height="8" rx="4" fill="#c4a882"/>
+    <ellipse cx="256" cy="175" rx="75" ry="65" fill="#9b59b6"/>
+    <circle cx="232" cy="162" r="12" fill="white"/>
+    <circle cx="280" cy="162" r="12" fill="white"/>
+    <circle cx="235" cy="164" r="6" fill="#1a1a2e"/>
+    <circle cx="283" cy="164" r="6" fill="#1a1a2e"/>
+    <circle cx="237" cy="162" r="2" fill="white"/>
+    <circle cx="285" cy="162" r="2" fill="white"/>
+    <path d="M185 210 Q160 240 150 270 Q145 295 158 310" stroke="#7d3c98" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M205 225 Q190 260 188 290 Q188 315 200 325" stroke="#7d3c98" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M256 230 Q256 265 256 290 Q256 315 256 330" stroke="#7d3c98" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M307 225 Q322 260 324 290 Q324 315 312 325" stroke="#7d3c98" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M327 210 Q352 240 362 270 Q367 295 354 310" stroke="#7d3c98" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <circle cx="155" cy="268" r="5" fill="#c39bd3"/>
+    <circle cx="151" cy="290" r="4" fill="#c39bd3"/>
+    <circle cx="362" cy="268" r="5" fill="#c39bd3"/>
+    <circle cx="366" cy="290" r="4" fill="#c39bd3"/>
+    <text x="340" y="155" font-size="48" text-anchor="middle">✨</text>
+  </svg>
+  <h1>EmojiSequencer</h1>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('translate', this)">Translate</button>
+  <button class="tab" onclick="switchTab('favourites', this)">Favourites</button>
+  <button class="tab" onclick="switchTab('preferences', this)">Emoji prefs</button>
+</div>
+
+<div id="pane-translate" class="pane active">
+  <div class="input-row">
+    <input type="text" id="sentence-input" placeholder="Type a sentence..." onkeydown="if(event.key==='Enter') translate()">
+    <button class="btn" id="translate-btn" onclick="translate()">Go</button>
+  </div>
+  <div id="error" class="error" style="display:none"></div>
+  <div id="result" style="display:none">
+    <div class="result-box">
+      <span class="emoji-string" id="emoji-output" onclick="copyMain()" title="Tap to copy"></span>
+      <div class="action-row">
+        <button class="btn btn-ghost" onclick="copyMain()" id="copy-btn">Copy</button>
+        <button class="btn btn-ghost" id="fav-btn" onclick="toggleFavSentence()">☆ Save</button>
+      </div>
+    </div>
+    <div class="word-grid" id="word-grid"></div>
+  </div>
+</div>
+
+<div id="pane-favourites" class="pane">
+  <div id="fav-list"></div>
+</div>
+
+<div id="pane-preferences" class="pane">
+  <p class="pref-note">Your preferred emoji per word. Applied automatically next time that word appears.</p>
+  <div id="pref-list"></div>
+</div>
+
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+const SYSTEM = `You are an emoji translator. Given a sentence, translate it into emojis word by word or concept by concept.
+
+Return ONLY valid JSON. No markdown, no backticks, no preamble.
+
+Format:
+{
+  "translation": [
+    {
+      "word": "the source word or concept",
+      "options": ["emoji1", "emoji2", "emoji3"]
+    }
+  ]
+}
+
+Rules:
+- For each word or concept, provide 2-3 emoji options when multiple make sense
+- For common words with an obvious emoji (sun, heart, dog), still provide 2-3 related alternatives
+- For abstract words (the, a, is, of) that have no emoji, provide 1-2 approximate conceptual alternatives like symbols or related concepts
+- Always return at least 1 option per word
+- Keep words as single meaningful units; you may merge short function words with adjacent words
+- Skip pure punctuation words
+- Return actual emoji characters, not codes`;
+
+let prefs = JSON.parse(localStorage.getItem('ej_prefs') || '{}');
+let favs = JSON.parse(localStorage.getItem('ej_favs') || '[]');
+let currentTranslation = null;
+
+function savePrefs() { localStorage.setItem('ej_prefs', JSON.stringify(prefs)); }
+function saveFavs() { localStorage.setItem('ej_favs', JSON.stringify(favs)); }
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pane-' + name).classList.add('active');
+  if (name === 'favourites') renderFavs();
+  if (name === 'preferences') renderPrefs();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function getEmojiString(items) { return items.map(i => i.selected).join(' '); }
+
+async function translate() {
+  const input = document.getElementById('sentence-input').value.trim();
+  if (!input) return;
+  const btn = document.getElementById('translate-btn');
+  const errEl = document.getElementById('error');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-dots">Translating</span>';
+  document.getElementById('result').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: `Translate: "${input}"` }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || '';
+    const parsed = JSON.parse(text);
+    const items = parsed.translation.map(item => ({
+      ...item,
+      selected: prefs[item.word.toLowerCase()] || item.options[0]
+    }));
+    currentTranslation = { sentence: input, items };
+    renderResult();
+  } catch(e) {
+    errEl.textContent = 'Translation failed. Please try again.';
+    errEl.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Go';
+}
+
+function renderResult() {
+  if (!currentTranslation) return;
+  const { sentence, items } = currentTranslation;
+  const str = getEmojiString(items);
+  document.getElementById('emoji-output').textContent = str;
+  document.getElementById('result').style.display = 'block';
+  const isFaved = favs.find(f => f.sentence === sentence);
+  document.getElementById('fav-btn').textContent = isFaved ? '★ Saved' : '☆ Save';
+  document.getElementById('fav-btn').classList.toggle('active', !!isFaved);
+
+  const grid = document.getElementById('word-grid');
+  grid.innerHTML = '';
+  items.forEach((item, idx) => {
+    const block = document.createElement('div');
+    block.className = 'word-block';
+    const label = document.createElement('div');
+    label.className = 'word-label';
+    label.textContent = item.word;
+    const opts = document.createElement('div');
+    opts.className = 'emoji-opts';
+    item.options.forEach(em => {
+      const b = document.createElement('button');
+      b.className = 'emoji-opt' + (item.selected === em ? ' selected' : '');
+      b.textContent = em;
+      b.title = item.selected === em ? 'Selected (preference saved)' : 'Select';
+      b.onclick = () => selectEmoji(idx, em);
+      opts.appendChild(b);
+    });
+    block.appendChild(label);
+    block.appendChild(opts);
+    grid.appendChild(block);
+  });
+}
+
+function selectEmoji(idx, emoji) {
+  currentTranslation.items[idx].selected = emoji;
+  const word = currentTranslation.items[idx].word.toLowerCase();
+  prefs[word] = emoji;
+  savePrefs();
+  renderResult();
+}
+
+function copyMain() {
+  if (!currentTranslation) return;
+  navigator.clipboard.writeText(getEmojiString(currentTranslation.items));
+  showToast('Copied!');
+}
+
+function toggleFavSentence() {
+  if (!currentTranslation) return;
+  const { sentence, items } = currentTranslation;
+  const idx = favs.findIndex(f => f.sentence === sentence);
+  if (idx >= 0) {
+    favs.splice(idx, 1);
+  } else {
+    favs.unshift({ sentence, emoji: getEmojiString(items), items: JSON.parse(JSON.stringify(items)) });
+  }
+  saveFavs();
+  renderResult();
+}
+
+function renderFavs() {
+  const el = document.getElementById('fav-list');
+  if (!favs.length) {
+    el.innerHTML = '<div class="empty">No saved translations yet.<br>Translate something and tap ☆ Save.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  favs.forEach((f, i) => {
+    const div = document.createElement('div');
+    div.className = 'fav-item';
+    div.innerHTML = `
+      <div class="fav-sentence">${escHtml(f.sentence)}</div>
+      <div class="fav-emoji">${f.emoji}</div>
+      <div class="fav-item-actions">
+        <button class="del-btn" onclick="deleteFav(${i}, event)">Remove</button>
+      </div>`;
+    div.onclick = () => { navigator.clipboard.writeText(f.emoji); showToast('Copied!'); };
+    el.appendChild(div);
+  });
+}
+
+function deleteFav(i, e) {
+  e.stopPropagation();
+  favs.splice(i, 1);
+  saveFavs();
+  renderFavs();
+}
+
+function renderPrefs() {
+  const el = document.getElementById('pref-list');
+  const keys = Object.keys(prefs);
+  if (!keys.length) {
+    el.innerHTML = '<div class="empty">No emoji preferences yet.<br>Select an alternative emoji for a word<br>and it\'ll be remembered here.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  keys.forEach(word => {
+    const div = document.createElement('div');
+    div.className = 'pref-item';
+    div.innerHTML = `
+      <span class="pref-word">${escHtml(word)}</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="pref-emoji">${prefs[word]}</span>
+        <button class="del-btn" onclick="deletePref('${word}')">Remove</button>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+function deletePref(word) {
+  delete prefs[word];
+  savePrefs();
+  renderPrefs();
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
