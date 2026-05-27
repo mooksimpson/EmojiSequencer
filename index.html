@@ -506,6 +506,11 @@ async function translate() {
       })
     });
     const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = 'API error ' + res.status + ': ' + JSON.stringify(data);
+      errEl.style.display = 'block';
+      return;
+    }
     const text = data.content?.find(b => b.type === 'text')?.text || '';
     const parsed = JSON.parse(text);
     const items = parsed.translation.map(item => ({
@@ -515,7 +520,7 @@ async function translate() {
     currentTranslation = { sentence: input, items };
     renderResult();
   } catch(e) {
-    errEl.textContent = 'Translation failed. Please try again.';
+    errEl.textContent = 'Error: ' + e.message;
     errEl.style.display = 'block';
   }
 
