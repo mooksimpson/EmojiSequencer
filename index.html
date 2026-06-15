@@ -123,7 +123,7 @@ input[type="text"]::placeholder{color:var(--text3)}
 <script>
 const SYSTEM = `You are an emoji translator. Given a sentence, translate its emotional meaning and key concepts into emojis.
 
-Return ONLY valid JSON. No markdown, no backticks, no preamble.
+Return ONLY valid JSON with no markdown, no backticks, no code fences, no preamble. Start your response with { and end with }.
 
 Format:
 {
@@ -152,6 +152,10 @@ try { favs = JSON.parse(localStorage.getItem('ej_favs') || '[]'); } catch(e) {}
 
 function savePrefs() { try { localStorage.setItem('ej_prefs', JSON.stringify(prefs)); } catch(e) {} }
 function saveFavs() { try { localStorage.setItem('ej_favs', JSON.stringify(favs)); } catch(e) {} }
+
+function cleanJSON(str) {
+  return str.replace(/^```[a-z]*\n?/i, '').replace(/```$/,'').trim();
+}
 
 function switchTab(name, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -201,7 +205,8 @@ async function runTranslate() {
       return;
     }
     const textBlock = data.content && data.content.find(function(b){return b.type==='text';});
-    const parsed = JSON.parse(textBlock.text);
+    const cleaned = cleanJSON(textBlock.text);
+    const parsed = JSON.parse(cleaned);
     const items = parsed.translation.map(function(item) {
       return Object.assign({}, item, { selected: prefs[item.word.toLowerCase()] || item.options[0] });
     });
